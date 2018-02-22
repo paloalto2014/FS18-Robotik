@@ -1,0 +1,152 @@
+/*
+BALL ERKANNT IN SLOT X
+
+Was das Programm macht:
+- ständig prüfen, ob StartSpiel(true)
+- nimmt die Sensoren aus der Liste und kalibriert sie, speichert Werte in Array
+- setzt Ergebnis-Array auf {0, 0, 0, 0}
+- falls noch kein Ball gefunden, loopt ständig durch die Sensoren um eine Lichtdifferenz zu erkennen
+- bei Lichtdifferenz wird der Ball erkannt, Schleife wird abgebrochen
+- Ergebnis des Ereignisses wird in Array geschrieben, z.B. {0, 0, 1, 0} bedeutet, dass der 3. Sensor einen Ball gesehen hat
+- spiel_starten = false zum beenden des Spiels
+
+Input:
+- DONE für Spielbeginn --> spiel_starten = true  // sollte von Anton kommen
+Output:
+- DONE Array mit letzem Event --> spiel_ergebnis_array = {0, 0, 1, 0} // benötigt Anton
+- OPEN Mitteilung über Spielbeginn an Anton
+- OPEN Mitteilung über Timeout an Anton
+- OPEN Mitteilung über Spielende an Anton
+
+Backlog:
+- OPEN Bluetoothkommunikation als Slave Oscar mit Master Anton
+- OPEN Timeout
+- OPEN Melodie zum Starten
+- OPEN Melodie bei erkanntem Ball
+- OPEN Ansteuerung der Hindernismotoren
+*/ 
+
+//////////////// WERTE ZUM EINTRAGEN //////////////////////////
+const int licht_differenz = 5; //ab dieser Differenz soll ein Ball detektiert werden
+const int licht_sensoren_array[] = {S1, S2, S3, S4}; //hier die angeschlossenen Sensoren eintragen
+const int licht_sensoren_anzahl = 4; //hier Anzahl der Lichtsensoren eintragen
+
+////////////////INITIALISIERUNG DER ARRAYS + BOOLEAN/////////////////////
+bool spiel_starten = true; // wird in Zukunft durch Anton geaendert? 
+bool ball_gefunden = false;
+int licht_initial_array[licht_sensoren_anzahl] = {};
+int spiel_ergebnis_array[licht_sensoren_anzahl] = {}; // Array fuer Anton 0,1,0,0 heisst, dass bei 4 Sensoren der 2. einen Ball gesehen hat
+
+
+///////////////// Hilfsfunktionen ////////////////////////////////////
+sub debug(int anzahl_piep, int ton_hoehe, int dauer) {
+    for (int i=0; i<anzahl_piep; i++) {
+        PlayTone(ton_hoehe, dauer);
+        Wait(1000);
+    }
+    Wait(2000);
+}
+
+sub print_array(int array[], int line) {
+    
+    int position_x = 10;
+    for (int j=0; j<ArrayLen(array); j++) {    
+        NumOut(position_x, line, array[j]);
+        position_x = position_x + 15;
+    } 
+
+}
+
+///////////////// FUNKTIONEN ////////////////////////////////////
+int licht_kalibrierung(int lichtsensor){
+    int licht_initial = Sensor(lichtsensor); // Speicherung des Lichtwertes ohne Ball
+    return licht_initial; //gibt den Wert zurueck
+}
+
+sub ball_ist_da(int index) {
+    PlayTone(1000, 1000);
+    ball_gefunden = true;
+    spiel_ergebnis_array[index] = 1;
+    
+    // debugging beginn   
+    ClearScreen();
+    TextOut(10, LCD_LINE1, "Ball in Slot:");
+    NumOut(10, LCD_LINE2, index+1);
+    TextOut(10, LCD_LINE3, "Ergebnisarry:");
+    print_array(spiel_ergebnis_array, LCD_LINE4);
+    Wait(1000);
+    // debugging ende
+
+}
+
+int ball_kommt(int index, int lichtsensor) {
+    const int licht_initial = licht_initial_array[lichtsensor];
+    const int licht_aktuell = Sensor(lichtsensor);
+    if ((licht_initial - licht_aktuell) > licht_differenz) {
+       ball_ist_da(index);
+       
+    }
+    else if ((licht_initial - licht_aktuell) < -licht_differenz) {
+       ball_ist_da(index);
+       
+    }
+}
+
+
+ ////////////////////task main()/////////////////////////////////
+
+task main() {
+ 
+   while(true) {
+       if (spiel_starten) {
+    
+          // Initialisiert Sensoren und speichert Lichtkalibrierung, Spielstand auf null
+         for (int i=0; i<ArrayLen(licht_sensoren_array); i++) {
+             int aktueller_sensor = licht_sensoren_array[i]; 
+             SetSensor(aktueller_sensor, SENSOR_LIGHT);
+             licht_initial_array[i] = licht_kalibrierung(aktueller_sensor);
+             spiel_ergebnis_array[i] = 0;
+         }
+         
+         // debugging beginn
+         ClearScreen();
+         TextOut(0, LCD_LINE3, "Lichtkalibierung:");
+         print_array(licht_initial_array, LCD_LINE4);
+         Wait(2000);
+         // debugging ende
+         
+         while (ball_gefunden == false) { 
+               for (int i=0; i<ArrayLen(licht_sensoren_array); i++) {
+                              ball_kommt(i, licht_sensoren_array[i]);
+                          }   
+         }
+       
+       // debugging beginn
+       //print_array(spiel_ergebnis_array, LCD_LINE3); 
+       //Wait(3000); 
+       // debugging ende
+       
+       spiel_starten = false;
+       ball_gefunden = false;
+      
+       // debugging fuer unten
+       TextOut(0, LCD_LINE6, "Mittelknopf fuer");
+       TextOut(0, LCD_LINE7, "weitere Runde");
+       TextOut(0, LCD_LINE8, "druecken...");
+       // debugging ende
+       
+       } // end of if
+       
+       // debugging beginn - weitere spielrunde
+       until(ButtonPressed(BTNCENTER,false));
+       until(!ButtonPressed(BTNCENTER,false));
+       spiel_starten = true;
+       // debugging ende
+       
+   } // end of while
+   
+ debug(3, 100, 200); // wird nie aufgerufen (hoffentlich...)
+
+} // end of main
+
+
