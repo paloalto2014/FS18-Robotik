@@ -30,6 +30,7 @@ Backlog:
 const int licht_differenz = 5; //ab dieser Differenz soll ein Ball detektiert werden
 const int licht_sensoren_array[] = {S1, S2, S3, S4}; //hier die angeschlossenen Sensoren eintragen
 const int licht_sensoren_anzahl = 4; //hier Anzahl der Lichtsensoren eintragen
+bool debug_modus = true; // um alle Debug-Bestandteile auszuschalten
 
 ////////////////INITIALISIERUNG DER ARRAYS + BOOLEAN/////////////////////
 bool spiel_starten = true; // wird in Zukunft durch Anton geaendert? 
@@ -64,18 +65,20 @@ int licht_kalibrierung(int lichtsensor){
 }
 
 sub ball_ist_da(int index) {
-    PlayTone(1000, 1000);
+    
     ball_gefunden = true;
     spiel_ergebnis_array[index] = 1;
     
-    // debugging beginn   
-    ClearScreen();
-    TextOut(10, LCD_LINE1, "Ball in Slot:");
-    NumOut(10, LCD_LINE2, index+1);
-    TextOut(10, LCD_LINE3, "Ergebnisarry:");
-    print_array(spiel_ergebnis_array, LCD_LINE4);
-    Wait(1000);
-    // debugging ende
+    // debugging beginn
+    if (debug_modus == true) {
+       PlayTone(1000, 1000);   
+       ClearScreen();
+       TextOut(10, LCD_LINE1, "Ball in Slot:");
+       NumOut(10, LCD_LINE2, index+1);
+       TextOut(10, LCD_LINE3, "Ergebnisarry:");
+       print_array(spiel_ergebnis_array, LCD_LINE4);
+       Wait(1000);
+    } // debugging ende
 
 }
 
@@ -109,11 +112,12 @@ task main() {
          }
          
          // debugging beginn
-         ClearScreen();
-         TextOut(0, LCD_LINE3, "Lichtkalibierung:");
-         print_array(licht_initial_array, LCD_LINE4);
-         Wait(2000);
-         // debugging ende
+         if (debug_modus == true) {
+            ClearScreen();
+            TextOut(0, LCD_LINE3, "Lichtkalibierung:");
+            print_array(licht_initial_array, LCD_LINE4);
+            Wait(2000);
+         } // debugging ende
          
          while (ball_gefunden == false) { 
                for (int i=0; i<ArrayLen(licht_sensoren_array); i++) {
@@ -121,31 +125,28 @@ task main() {
                           }   
          }
        
-       // debugging beginn
-       //print_array(spiel_ergebnis_array, LCD_LINE3); 
-       //Wait(3000); 
-       // debugging ende
-       
        spiel_starten = false;
        ball_gefunden = false;
       
-       // debugging fuer unten
-       TextOut(0, LCD_LINE6, "Mittelknopf fuer");
-       TextOut(0, LCD_LINE7, "weitere Runde");
-       TextOut(0, LCD_LINE8, "druecken...");
-       // debugging ende
+          // debugging fuer unten
+          if (debug_modus == true) {
+             TextOut(0, LCD_LINE6, "Mittelknopf fuer");
+             TextOut(0, LCD_LINE7, "weitere Runde");
+             TextOut(0, LCD_LINE8, "druecken...");
+          }// debugging ende
        
        } // end of if
        
        // debugging beginn - weitere spielrunde
-       until(ButtonPressed(BTNCENTER,false));
-       until(!ButtonPressed(BTNCENTER,false));
-       spiel_starten = true;
-       // debugging ende
+       if (debug_modus == true) {
+          until(ButtonPressed(BTNCENTER,false));
+          until(!ButtonPressed(BTNCENTER,false));
+          spiel_starten = true;
+       } // debugging ende
        
    } // end of while
    
- debug(3, 100, 200); // wird nie aufgerufen (hoffentlich...)
+ debug(3, 100, 200); // Dieser Ton waere ein Fehler!
 
 } // end of main
 
