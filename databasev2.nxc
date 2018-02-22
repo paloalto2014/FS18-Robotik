@@ -1,0 +1,64 @@
+
+string names[] = {"Max", "Meier", "Hubert"};
+int points[] = {5, 4, 6};
+int grenzwert = 45;
+int user;
+
+
+sub PointsOut(int who) //prints out how many Points someone has
+{
+  TextOut(0, LCD_LINE1, names[who],true);
+  TextOut(0, LCD_LINE2, "Sie");
+  NumOut(20, LCD_LINE2, points[who]);
+  TextOut(30, LCD_LINE2, "Treue-Punkte");
+  Wait(3000);
+}
+
+int CheckCard()//check barcode start with black
+{
+  int time = CurrentTick(); //current system time
+  time = abs(time);
+  int dauer;
+  int count;
+  while(dauer < 2000){   //check barcode for 2 sec
+   // until (Sensor(S1)>=grenzwert); //turns with
+    count = count+1;
+   // until (Sensor(S1)<grenzwert); //turns black
+   int current = CurrentTick();
+   current = abs(current);
+   dauer = abs(current-time);//how much time passed
+  }
+  return 2;
+}
+
+sub UsePoints()
+{
+  TextOut(0, LCD_LINE1, "Wollen Sie ihre" ,true);
+  TextOut(0, LCD_LINE1, "Punke einlösen?");
+  TextOut(0, LCD_LINE8, "Nein" );
+  TextOut(80, LCD_LINE8, "Ja" );
+  until(ButtonPressed(BTNLEFT,false) || ButtonPressed(BTNRIGHT,false));
+  if (ButtonPressed(BTNRIGHT,false)){ //Ja
+          points[user]= points[user]-5;
+          PointsOut(user);
+        }
+
+}
+
+
+
+task main()
+{
+   SetSensor(S1, SENSOR_LIGHT);
+   user = CheckCard();
+   PointsOut(2);
+   if (points[user] > 5){
+      UsePoints();
+      }
+   
+}
+
+
+
+
+
