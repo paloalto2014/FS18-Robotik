@@ -77,7 +77,6 @@ sub ball_ist_da(int index) {
        NumOut(10, LCD_LINE2, index+1);
        TextOut(10, LCD_LINE3, "Ergebnisarry:");
        print_array(spiel_ergebnis_array, LCD_LINE4);
-       Wait(1000);
     } // debugging ende
 
 }
@@ -116,7 +115,6 @@ task main() {
             ClearScreen();
             TextOut(0, LCD_LINE3, "Lichtkalibierung:");
             print_array(licht_initial_array, LCD_LINE4);
-            Wait(2000);
          } // debugging ende
          
          while (ball_gefunden == false) { 
