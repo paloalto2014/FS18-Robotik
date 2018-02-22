@@ -20,21 +20,32 @@ int CheckCard()//check barcode start with black
   time = abs(time);
   int dauer;
   int count;
-  while(dauer < 2000){   //check barcode for 2 sec
-   // until (Sensor(S1)>=grenzwert); //turns with
-    count = count+1;
-   // until (Sensor(S1)<grenzwert); //turns black
+  bool before_black = true;
+  while(dauer < 15000){   //check barcode for 2 sec
+  if (Sensor(S1)>=grenzwert){ //turns white
+    if (before_black) {
+      count++;
+      before_black= false;
+      PlayTone(500, 500);
+       }
+   }
+   else if (Sensor(S1)<grenzwert){ //turns black
+      if (before_black == false) {
+      before_black= true;
+       }
+      }
    int current = CurrentTick();
    current = abs(current);
    dauer = abs(current-time);//how much time passed
+
   }
-  return 2;
+  return count;
 }
 
 sub UsePoints()
 {
   TextOut(0, LCD_LINE1, "Wollen Sie ihre" ,true);
-  TextOut(0, LCD_LINE1, "Punke einlösen?");
+  TextOut(0, LCD_LINE2, "Punkte einlösen?");
   TextOut(0, LCD_LINE8, "Nein" );
   TextOut(80, LCD_LINE8, "Ja" );
   until(ButtonPressed(BTNLEFT,false) || ButtonPressed(BTNRIGHT,false));
