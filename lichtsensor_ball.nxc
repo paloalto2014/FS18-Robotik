@@ -21,8 +21,8 @@ Output:
 Backlog:
 - OPEN Bluetoothkommunikation als Slave Oscar mit Master Anton
 - OPEN Timeout
-- OPEN Melodie zum Starten
-- OPEN Melodie bei erkanntem Ball
+- DONE Melodie zum Starten
+- DONE Melodie bei erkanntem Ball
 - OPEN Ansteuerung der Hindernismotoren
 */ 
 
@@ -37,7 +37,6 @@ bool spiel_starten = true; // wird in Zukunft durch Anton geaendert?
 bool ball_gefunden = false;
 int licht_initial_array[licht_sensoren_anzahl] = {};
 int spiel_ergebnis_array[licht_sensoren_anzahl] = {}; // Array fuer Anton 0,1,0,0 heisst, dass bei 4 Sensoren der 2. einen Ball gesehen hat
-
 
 ///////////////// Hilfsfunktionen ////////////////////////////////////
 sub debug(int anzahl_piep, int ton_hoehe, int dauer) {
@@ -58,6 +57,62 @@ sub print_array(int array[], int line) {
 
 }
 
+/////////////// TASK SOUND ///////////////////////////////////////////////////
+task sound() {
+
+     if(spiel_starten == true) {
+         PlayTone(523,400);
+         Wait(100);
+         Wait(300);
+         PlayTone(523,400);
+         Wait(100);
+         PlayTone(659,400);
+         Wait(100);
+         PlayTone(784,400);
+         Wait(100);
+         PlayTone(659,400);
+         Wait(100);
+         PlayTone(784,400);
+         Wait(500);
+         
+         while (spiel_starten == true){
+            PlayTone(415,400);
+            Wait(100);
+            PlayTone(415,400);
+            Wait(100);
+            PlayTone(370,400);
+            Wait(100);
+            PlayTone(370,400);
+            Wait(100);
+            PlayTone(349,400);
+            Wait(100);
+            PlayTone(349,400);
+            Wait(100);
+            PlayTone(330,400);
+            Wait(100);
+            PlayTone(330,400);
+             Wait(100);
+         }  
+     }
+     PlayTone(262,400);
+     Wait(100);
+     PlayTone(294,400);
+     Wait(100);
+     PlayTone(330,400);
+     Wait(100);
+     PlayTone(349,400);
+     Wait(100);
+     PlayTone(392,400);
+     Wait(100);
+     PlayTone(440,400);
+     Wait(100);
+     PlayTone(494,400);
+     Wait(100);
+     PlayTone(523,400);
+     Wait(100);         
+
+} // end of sound
+
 ///////////////// FUNKTIONEN ////////////////////////////////////
 int licht_kalibrierung(int lichtsensor){
     int licht_initial = Sensor(lichtsensor); // Speicherung des Lichtwertes ohne Ball
@@ -71,7 +126,7 @@ sub ball_ist_da(int index) {
     
     // debugging beginn
     if (debug_modus == true) {
-       PlayTone(1000, 1000);   
+       //PlayTone(1000, 1000);   
        ClearScreen();
        TextOut(10, LCD_LINE1, "Ball in Slot:");
        NumOut(10, LCD_LINE2, index+1);
@@ -97,11 +152,12 @@ int ball_kommt(int index, int lichtsensor) {
 
  ////////////////////task main()/////////////////////////////////
 
+
 task main() {
  
    while(true) {
        if (spiel_starten) {
-    
+          start sound;
           // Initialisiert Sensoren und speichert Lichtkalibrierung, Spielstand auf null
          for (int i=0; i<ArrayLen(licht_sensoren_array); i++) {
              int aktueller_sensor = licht_sensoren_array[i]; 
@@ -146,6 +202,10 @@ task main() {
    
  debug(3, 100, 200); // Dieser Ton waere ein Fehler!
 
-} // end of main
+} 
 
+/* task main() {
+     Precedes(ball, sound); 
+     }
+ */
 
