@@ -42,7 +42,7 @@ int spiel_ergebnis_array[licht_sensoren_anzahl] = {}; // Array fuer Anton 0,1,0,
 #define BT_CONN 0  // Slave 0!!!
 #define OUTBOX 2
 #define INBOX 1
-int beginn_zu_spielen = 0;
+bool beginn_zu_spielen = false;
 
 
 sub BTCheck(int conn) {
@@ -189,11 +189,12 @@ task main() {
    while(true) {
    
    //debugging
+   ClearScreen();
    TextOut(0, LCD_LINE4, "In Warteschlaufe...");
    
-   ReceiveRemoteNumber(INBOX, true, beginn_zu_spielen);
+   ReceiveRemoteBool(INBOX, true, beginn_zu_spielen);
    
-   if(beginn_zu_spielen == 1) {
+   if(beginn_zu_spielen == true) {
       spiel_starten = true;
    }
   
@@ -225,12 +226,13 @@ task main() {
        spiel_starten = false;
        ball_gefunden = false;
       
-          // debugging fuer unten
+         /*  // debugging fuer unten
           if (debug_modus == true) {
              TextOut(0, LCD_LINE6, "Mittelknopf fuer");
              TextOut(0, LCD_LINE7, "weitere Runde");
              TextOut(0, LCD_LINE8, "druecken...");
-          }// debugging ende
+          }// debugging ende */
+
        
        } // end of if
        

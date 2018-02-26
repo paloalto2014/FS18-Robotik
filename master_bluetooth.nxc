@@ -1,10 +1,10 @@
  // bluetooth for Master Anton
 
-#define BT_CONN 1  // Master 1!!!
+#define BT_CONN 1  // Master 1!!! Bluetooth von Master verwenden zum verbinden
 #define OUTBOX 1
 #define INBOX 2
 
-int beginn_zu_spielen = 0;
+bool beginn_zu_spielen = false;
 
 sub BTCheck(int conn) {
     if (!BluetoothStatus(conn)==NO_ERR) {
@@ -23,7 +23,7 @@ sub BTCheck(int conn) {
 
 task main() {
      
-     int Slot;
+     int ergebnis_eingang = -1;
      
      BTCheck(BT_CONN);
      
@@ -37,18 +37,23 @@ task main() {
                  ClearScreen();
                  TextOut(10, LCD_LINE3, "Spiel gestartet!");
                  
-                 beginn_zu_spielen = 1;
-                 SendRemoteNumber(BT_CONN, OUTBOX, beginn_zu_spielen);
+                 beginn_zu_spielen = true;
+                 SendRemoteBool(BT_CONN, OUTBOX, beginn_zu_spielen);
                  NumOut(0, LCD_LINE5, beginn_zu_spielen);
                  Wait(1000);
                  
                  while(beginn_zu_spielen) {
                  
-                 ReceiveRemoteNumber(INBOX, false, Slot);
+                 ReceiveRemoteNumber(INBOX, true, ergebnis_eingang);
                  
                  ClearScreen();
                  TextOut(10, LCD_LINE3, "Slot:");
-                 NumOut(13, LCD_LINE5, Slot);
+                 NumOut(13, LCD_LINE5, ergebnis_eingang);
+                 
+                 if (ergebnis_eingang > 0) {
+                    Wait(2000);
+                    beginn_zu_spielen = false;
+                    }
                  
                  }
      }
