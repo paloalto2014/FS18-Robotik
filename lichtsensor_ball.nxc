@@ -33,11 +33,33 @@ const int licht_sensoren_anzahl = 4; //hier Anzahl der Lichtsensoren eintragen
 bool debug_modus = true; // um alle Debug-Bestandteile auszuschalten
 
 ////////////////INITIALISIERUNG DER ARRAYS + BOOLEAN/////////////////////
-bool spiel_starten = true; // wird in Zukunft durch Anton geaendert? 
+bool spiel_starten = false; // wird in Zukunft durch Anton geaendert? 
 bool ball_gefunden = false;
 int licht_initial_array[licht_sensoren_anzahl] = {};
 int spiel_ergebnis_array[licht_sensoren_anzahl] = {}; // Array fuer Anton 0,1,0,0 heisst, dass bei 4 Sensoren der 2. einen Ball gesehen hat
 
+//#include NXCDefs.h
+#define BT_CONN 0  // Slave 0!!!
+#define OUTBOX 2
+#define INBOX 1
+int beginn_zu_spielen = 0;
+
+
+sub BTCheck(int conn) {
+    if (!BluetoothStatus(conn)==NO_ERR) {
+       ClearScreen();
+       TextOut(0, LCD_LINE3, "FEHLER: Bluetooth");
+       NumOut(0, LCD_LINE3, conn);
+       Wait(5000);
+       StopAllTasks();
+    } else {
+      ClearScreen();
+      TextOut(0, LCD_LINE2, "OK: Bluetooth");
+      NumOut(0, LCD_LINE3, conn);
+      Wait(1000);
+    }
+    
+}
 ///////////////// Hilfsfunktionen ////////////////////////////////////
 sub debug(int anzahl_piep, int ton_hoehe, int dauer) {
     for (int i=0; i<anzahl_piep; i++) {
@@ -124,6 +146,11 @@ sub ball_ist_da(int index) {
     ball_gefunden = true;
     spiel_ergebnis_array[index] = 1;
     
+    // zum versenden
+    int ergebnis_slot;
+    ergebnis_slot = index + 1;
+    SendRemoteNumber(BT_CONN, OUTBOX, ergebnis_slot);
+    
     // debugging beginn
     if (debug_modus == true) {
        //PlayTone(1000, 1000);   
@@ -154,8 +181,24 @@ int ball_kommt(int index, int lichtsensor) {
 
 
 task main() {
+
+ 
+     
+     BTCheck(BT_CONN);
  
    while(true) {
+   
+   //debugging
+   TextOut(0, LCD_LINE4, "In Warteschlaufe...");
+   
+   ReceiveRemoteNumber(INBOX, true, beginn_zu_spielen);
+   
+   if(beginn_zu_spielen == 1) {
+      spiel_starten = true;
+   }
+  
+   
+   
        if (spiel_starten) {
           start sound;
           // Initialisiert Sensoren und speichert Lichtkalibrierung, Spielstand auf null
@@ -191,12 +234,13 @@ task main() {
        
        } // end of if
        
-       // debugging beginn - weitere spielrunde
+       /* // debugging beginn - weitere spielrunde
        if (debug_modus == true) {
           until(ButtonPressed(BTNCENTER,false));
           until(!ButtonPressed(BTNCENTER,false));
           spiel_starten = true;
-       } // debugging ende
+       } // debugging ende */
+
        
    } // end of while
    
