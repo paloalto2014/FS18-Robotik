@@ -1,0 +1,150 @@
+byte bon[]; //datenbank von allen Kunden 0= noch nicht gespiel, 1= verloren, 2=gewinn 1, 2 =gewinn 2
+byte grenzwert = 45;
+short user; // welcher kassenzettel
+
+
+byte CheckBinary()//überprüft den 2. Sensor
+{
+  if (Sensor(S2)<grenzwert)//black
+  {
+    PlayTone(700, 500);
+    return 1;
+  }
+  PlayTone(400, 500);
+  return 0; //white
+}
+
+
+
+short CheckCard()//check barcode start with white
+{
+  OnFwd(OUT_A, 100);
+  byte binary[]= {0,0,0,0};
+  byte count=0;
+  bool before_white = true;
+  while(Sensor(S3)==0){   //check barcode for 2 sec
+  if (Sensor(S1)<grenzwert){ //turns black
+    if (before_white==true) {
+      binary[count]= CheckBinary();
+      count++;
+      before_white= false;
+      //PlayTone(500, 500);
+       }
+   }
+   if (Sensor(S1)>=grenzwert){ //turns white
+      if (before_white == false) {
+      before_white= true;
+       }
+      }
+
+  }
+  OnRev(OUT_A, 100);
+  Wait(500);
+  Off(OUT_A);
+
+  byte binary_in_dezimal = binary[0]*1+binary[1]*2+binary[2]*4+binary[3]*8 ;
+  NumOut(0,  LCD_LINE5, binary_in_dezimal);
+  return binary_in_dezimal;
+}
+
+sub UsePoints()
+{
+  TextOut(0, LCD_LINE1, "Wollen Sie ihre" ,true);
+  TextOut(0, LCD_LINE2, "Punkte einlösen?");
+  TextOut(0, LCD_LINE8, "Nein" );
+  TextOut(80, LCD_LINE8, "Ja" );
+  until(ButtonPressed(BTNLEFT,false) || ButtonPressed(BTNRIGHT,false));
+  if (ButtonPressed(BTNRIGHT,false)){ //Ja
+
+        }
+
+}
+
+sub Print_for_first_round(byte endgame, byte anotherone)
+{
+  TextOut(0, LCD_LINE1, "Für einen 20% Gutschein" ,true);
+  NumOut(0,  LCD_LINE2, endgame);
+  TextOut(0, LCD_LINE1, "Für einen 2. Versuch");
+  NumOut(0,  LCD_LINE2, anotherone);
+}
+
+sub Print_for_second_round(byte endgame, byte checkpot)
+{
+  TextOut(0, LCD_LINE1, "Für einen 20% Gutschein" ,true);
+  NumOut(0,  LCD_LINE2, endgame);
+  TextOut(0, LCD_LINE1, "Für einen Checkpot");
+  NumOut(0,  LCD_LINE2, checkpot);
+}
+
+
+
+
+byte Play_again()//startet die 2. Runde des Spiel
+{
+  byte endgame = Random(3) + 1;
+  byte checkpot = Random(3) + 1;
+  while (endgame==checkpot) //beide gleich
+  {
+    checkpot =  Random(3) + 1;
+  }
+  Print_for_second_round(endgame,checkpot);
+  byte played = 0;//from oscar
+   if (played==endgame)
+   {
+     return 2;
+   }
+   if (played==checkpot)
+   {
+     return 3;
+   }
+  return 0;//nicht gewonnen
+}
+
+
+byte Startgame() //startet das Spiel und gibt den Wert zurück was gerspielt wurde
+{
+  byte win = 0;
+  byte endgame = Random(3) + 1;
+  byte anotherone = Random(3) + 1;
+  while (endgame==anotherone) //beide gleich
+  {
+    anotherone =  Random(3) + 1;
+  }
+  Print_for_first_round(endgame,anotherone);
+  byte played = 0;//send to oscar
+  if (played==endgame)
+    {
+    return 2;
+    }
+  if (played==anotherone) //2. Runde wird gespielt
+    {
+     return Play_again();
+     
+     }
+  
+  return 0;//nicht gewonnen
+}
+
+
+
+task main()
+{
+   SetSensor(S1, SENSOR_LIGHT);
+   SetSensor(S2, SENSOR_LIGHT);
+   SetSensor(S3, SENSOR_TOUCH);
+   while (true)
+   {
+     if (Sensor(S1)>grenzwert)
+     {
+       // PlayTone(400, 400);
+
+        user=CheckCard();
+        //NumOut(0,  LCD_LINE2, user);
+        //bon[user] = Startgame();
+     }
+
+   }
+
+}
+
+
