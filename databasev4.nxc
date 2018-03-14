@@ -1,17 +1,16 @@
 /*Mastercode um den Kassenzettel zu lesen und das Spiel zu starten.
 Written by: Steve Zwicky, Marcel Graf und Eliah Knecht */
 
-
 #define BT_CONN 1  // Master 1!!! Bluetooth von Master verwenden zum verbinden
 #define OUTBOX 1
 #define INBOX 2
 
-byte bon[]= {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}; //datenbank von allen Kunden 0= noch nicht gespiel, 1= verloren, 2=gewinn 1, 2 =gewinn 2
-byte grenzwert = 45;
+int bon[]= {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}; //datenbank von allen Kunden 0= noch nicht gespiel, 1= verloren, 2=gewinn 1, 2 =gewinn 2
+int grenzwert = 45;
 short user; // welcher kassenzettel
 
 
-byte CheckBinary()//überprüft den 2. Sensor
+int CheckBinary()//überprüft den 2. Sensor
 {
   if (Sensor(S2)<grenzwert)//Sensor ist Schwarz
   {
@@ -35,24 +34,26 @@ sub BTCheck(int conn) {
     
 }
 
-short Send_to_Oscar()
+int Send_to_Oscar()
 {
       bool beginn_zu_spielen = true;
-      //SendRemoteBool(BT_CONN, OUTBOX, beginn_zu_spielen);
-      //NumOut(0, LCD_LINE5, beginn_zu_spielen);
+      SendRemoteBool(BT_CONN, OUTBOX, beginn_zu_spielen);
+      NumOut(0, LCD_LINE5, beginn_zu_spielen);
       //Wait(1000);
       
-      short  ergebnis_eingang;
+      int  ergebnis_eingang;
+      
       
       while(beginn_zu_spielen) {
      
-         //ReceiveRemoteNumber(INBOX, true, ergebnis_eingang);
+         ReceiveRemoteNumber(INBOX, true, ergebnis_eingang);
         
-         ergebnis_eingang =2;//solange kein remote stattfindet
+         /* ergebnis_eingang =2;//solange kein remote stattfindet
          ClearScreen();
          TextOut(10, LCD_LINE3, "Slot:");
          NumOut(13, LCD_LINE5, ergebnis_eingang);
-        
+         */
+
       if (ergebnis_eingang > 0) {
         Wait(2000);
         beginn_zu_spielen = false;
@@ -60,7 +61,9 @@ short Send_to_Oscar()
      
      }
      
-      return  ergebnis_eingang;
+     
+     
+      return ergebnis_eingang;
 }
 
 
@@ -115,8 +118,8 @@ sub Print_error()
 short CheckCard()//startet den Einzug der Karte und gibt den Wert der Karte zurück
 {
   OnFwd(OUT_A, 100);
-  byte binary[]= {0,0,0,0};
-  byte count=0;
+  int binary[]= {0,0,0,0};
+  int count=0;
   bool before_white = true;//startet mit Weiss
   while(Sensor(S3)==0){   //liest so lange den Wert der Karte bis S3 gedrückt wird
      if (Sensor(S1)<grenzwert){ //Sensor 1 liest Schwarz
@@ -154,7 +157,7 @@ short CheckCard()//startet den Einzug der Karte und gibt den Wert der Karte zurü
 
 
 
-sub Print_for_first_round(byte endgame, byte anotherone)
+sub Print_for_first_round(int endgame, int anotherone)
 {
   TextOut(0, LCD_LINE1, "Für einen 20% Gutschein" ,true);
   NumOut(0,  LCD_LINE2, endgame);
@@ -163,7 +166,7 @@ sub Print_for_first_round(byte endgame, byte anotherone)
   Wait(2000);
 }
 
-sub Print_for_second_round(byte endgame, byte checkpot)
+sub Print_for_second_round(int endgame, int checkpot)
 {
   TextOut(0, LCD_LINE1, "Für einen 20% Gutschein" ,true);
   NumOut(0,  LCD_LINE2, endgame);
@@ -175,10 +178,10 @@ sub Print_for_second_round(byte endgame, byte checkpot)
 
 
 
-byte Play_again()//startet die 2. Runde des Spiel
+int Play_again()//startet die 2. Runde des Spiel
 {
-  byte endgame = Random(3) + 1;    //Slot der getroffen werden muss um den einfachen Gewinn zu gewinnen
-  byte checkpot = Random(3) + 1;   // Slot für den Checkpot
+  int endgame = Random(3) + 1;    //Slot der getroffen werden muss um den einfachen Gewinn zu gewinnen
+  int checkpot = Random(3) + 1;   // Slot für den Checkpot
   while (endgame==checkpot) //beide gleich
   {
     checkpot =  Random(3) + 1;
@@ -208,17 +211,17 @@ byte Play_again()//startet die 2. Runde des Spiel
 }
 
 
-byte Startgame() //startet das Spiel und gibt den Wert zurück was gerspielt wurde
+int Startgame() //startet das Spiel und gibt den Wert zurück was gerspielt wurde
 {
-  byte win = 0;
-  byte endgame = Random(3) + 1;  //Slot der getroffen werden muss um den einfachen Gewinn zu gewinnen
-  byte anotherone = Random(3) + 1;   //Slot der getroffen werden muss um nochmals zu spielen
+  int win = 0;
+  int endgame = Random(3) + 1;  //Slot der getroffen werden muss um den einfachen Gewinn zu gewinnen
+  int anotherone = Random(3) + 1;   //Slot der getroffen werden muss um nochmals zu spielen
   while (endgame==anotherone) //beide gleich
   {
     anotherone =  Random(3) + 1;
   }
   Print_for_first_round(endgame,anotherone);//Zeigt welche Slots man treffen muss um zu gewinnen
-  short played = Send_to_Oscar();
+  int played = Send_to_Oscar();
   if (played==endgame)//Einfacher Gewinn
     {
     TextOut(0, LCD_LINE1, "Sie haben 20% Rabatt" ,true);

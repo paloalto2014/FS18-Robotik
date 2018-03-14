@@ -2,21 +2,21 @@
 BALL IM SLOT X
 
 Was das Programm macht:
-- ständig prüfen, ob StartSpiel(true)
+- stï¿½ndig prï¿½fen, ob StartSpiel(true)
 - nimmt die Sensoren aus der Liste und kalibriert sie, speichert Werte in Array
 - setzt Ergebnis-Array auf {0, 0, 0, 0}
-- falls noch kein Ball gefunden, loopt ständig durch die Sensoren um eine Lichtdifferenz zu erkennen
+- falls noch kein Ball gefunden, loopt stï¿½ndig durch die Sensoren um eine Lichtdifferenz zu erkennen
 - bei Lichtdifferenz wird der Ball erkannt, Schleife wird abgebrochen
 - Ergebnis des Ereignisses wird in Array geschrieben, z.B. {0, 0, 1, 0} bedeutet, dass der 3. Sensor einen Ball gesehen hat
 - spiel_starten = false zum beenden des Spiels
 
 Input:
-- DONE für Spielbeginn --> spiel_starten = true  // sollte von Anton kommen
+- DONE fï¿½r Spielbeginn --> spiel_starten = true  // sollte von Anton kommen
 Output:
-- DONE Array mit letzem Event --> spiel_ergebnis_array = {0, 0, 1, 0} // benötigt Anton
-- OPEN Mitteilung über Spielbeginn an Anton
-- OPEN Mitteilung über Timeout an Anton
-- OPEN Mitteilung über Spielende an Anton
+- DONE Array mit letzem Event --> spiel_ergebnis_array = {0, 0, 1, 0} // benï¿½tigt Anton
+- OPEN Mitteilung ï¿½ber Spielbeginn an Anton
+- OPEN Mitteilung ï¿½ber Timeout an Anton
+- OPEN Mitteilung ï¿½ber Spielende an Anton
 
 Backlog:
 - OPEN Bluetoothkommunikation als Slave Oscar mit Master Anton
@@ -97,7 +97,17 @@ task sound() {
          PlayTone(784,400);
          Wait(500);
          
+         RotateMotor(OUT_C, 30, 90);
+         
+         OnFwd(OUT_AB, 20);
+         
+         int count_while = 0;
          while (spiel_starten == true){
+            
+            if (count_while == 5) {
+              RotateMotor(OUT_C, 30, -90);
+            }
+            
             PlayTone(415,400);
             Wait(100);
             PlayTone(415,400);
@@ -114,7 +124,12 @@ task sound() {
             Wait(100);
             PlayTone(330,400);
              Wait(100);
-         }  
+             
+             count_while = count_while +1;
+             
+         } 
+            
+         Off(OUT_AB); 
      }
      PlayTone(262,400);
      Wait(100);
@@ -194,7 +209,9 @@ task main() {
    
    ReceiveRemoteBool(INBOX, true, beginn_zu_spielen);
    
+   
    if(beginn_zu_spielen == true) {
+      TextOut(0, LCD_LINE5, "Empfangen...");
       spiel_starten = true;
    }
   
