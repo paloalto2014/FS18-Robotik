@@ -30,7 +30,7 @@ Backlog:
 const int licht_differenz = 5; //ab dieser Differenz soll ein Ball detektiert werden
 const int licht_sensoren_array[] = {S1, S2, S3, S4}; //hier die angeschlossenen Sensoren eintragen
 const int licht_sensoren_anzahl = 4; //hier Anzahl der Lichtsensoren eintragen
-bool debug_modus = true; // um alle Debug-Bestandteile auszuschalten
+bool debug_modus = false; // um alle Debug-Bestandteile auszuschalten
 
 ////////////////INITIALISIERUNG DER ARRAYS + BOOLEAN/////////////////////
 bool spiel_starten = false; // wird in Zukunft durch Anton geaendert? 
@@ -80,6 +80,13 @@ sub print_array(int array[], int line) {
 }
 
 /////////////// TASK SOUND ///////////////////////////////////////////////////
+sub neues_spiel_vorbereiten(){
+        spiel_starten = false;
+        ball_gefunden = false;
+        beginn_zu_spielen = false;                      
+    }
+
+
 task sound() {
 
      if(spiel_starten == true) {
@@ -97,40 +104,74 @@ task sound() {
          PlayTone(784,400);
          Wait(500);
          
-         RotateMotor(OUT_C, 30, 90);
+         //Tuere oeffnen
+         //OnRev(OUT_A, 30); //Spiel
+         OnFwd(OUT_B, 30); //türe
+         Wait(400);
+         Off(OUT_B);
+         OnRev(OUT_B,30);
+         Wait(400);
+         Off(OUT_B);
          
-         OnFwd(OUT_AB, 20);
+         int richtung = Random(2);
+         if (richtung == 0) {
+         OnRev(OUT_A, 30);
+         } 
+         if (richtung == 1) {
+         OnFwd(OUT_A, 30);
+         }
+         
          
          int count_while = 0;
+         int count_timeout = 20;
+         
          while (spiel_starten == true){
             
-            if (count_while == 5) {
-              RotateMotor(OUT_C, 30, -90);
+            while (count_while < count_timeout ) {
+            
+            PlayTone(500,1000);
+            PlayTone(1000,1000);
+                  
+                 /*  if (count_while == 5) {
+                   RotateMotor(OUT_C, 30, -90);
+                   } */
+
+                   
+                   if (count_while == count_timeout -1) {
+                      SendRemoteNumber(BT_CONN, OUTBOX, 99);
+                      neues_spiel_vorbereiten();
+                   }
+                   
+                   
+            
+               PlayTone(415,400);
+               Wait(100);
+               PlayTone(415,400);
+               Wait(100);
+               PlayTone(370,400);
+               Wait(100);
+               PlayTone(370,400);
+               Wait(100);
+               PlayTone(349,400);
+               Wait(100);
+               PlayTone(349,400);
+               Wait(100);
+               PlayTone(330,400);
+               Wait(100);
+               PlayTone(330,400);
+                Wait(100);
+                
+                count_while = count_while +1;
             }
             
-            PlayTone(415,400);
-            Wait(100);
-            PlayTone(415,400);
-            Wait(100);
-            PlayTone(370,400);
-            Wait(100);
-            PlayTone(370,400);
-            Wait(100);
-            PlayTone(349,400);
-            Wait(100);
-            PlayTone(349,400);
-            Wait(100);
-            PlayTone(330,400);
-            Wait(100);
-            PlayTone(330,400);
-             Wait(100);
-             
-             count_while = count_while +1;
+            
              
          } 
             
-         Off(OUT_AB); 
+         
      }
+      Off(OUT_A);
+     
      PlayTone(262,400);
      Wait(100);
      PlayTone(294,400);
@@ -147,7 +188,9 @@ task sound() {
      Wait(100);
      PlayTone(523,400);
      Wait(100);         
-
+     
+     neues_spiel_vorbereiten();
+     
 } // end of sound
 
 ///////////////// FUNKTIONEN ////////////////////////////////////
@@ -166,7 +209,9 @@ sub ball_ist_da(int index) {
     ergebnis_slot = index + 1;
     SendRemoteNumber(BT_CONN, OUTBOX, ergebnis_slot);
     
-    // debugging beginn
+    
+    
+  /*   // debugging beginn
     if (debug_modus == true) {
        //PlayTone(1000, 1000);   
        ClearScreen();
@@ -174,7 +219,8 @@ sub ball_ist_da(int index) {
        NumOut(10, LCD_LINE2, index+1);
        TextOut(10, LCD_LINE3, "Ergebnisarry:");
        print_array(spiel_ergebnis_array, LCD_LINE4);
-    } // debugging ende
+    } // debugging ende */
+
 
 }
 
@@ -203,15 +249,24 @@ task main() {
  
    while(true) {
    
+   
    //debugging
+   beginn_zu_spielen = false;
+   
    ClearScreen();
-   TextOut(0, LCD_LINE4, "In Warteschlaufe...");
+   TextOut(0, LCD_LINE3, "Bitte scannen Sie den");
+   TextOut(0, LCD_LINE4, "Kassenbeleg, um das");
+   TextOut(0, LCD_LINE5, "Spiel zu beginnen.");
    
    ReceiveRemoteBool(INBOX, true, beginn_zu_spielen);
    
    
-   if(beginn_zu_spielen == true) {
-      TextOut(0, LCD_LINE5, "Empfangen...");
+   if(beginn_zu_spielen) {
+      ClearScreen();
+      TextOut(0, LCD_LINE2, "Das Spiel hat");
+      TextOut(0, LCD_LINE3, "begonnen!!!");
+      TextOut(0, LCD_LINE4, "Werfen Sie den");
+      TextOut(0, LCD_LINE5, "Ball oben ein...");
       spiel_starten = true;
    }
   
@@ -227,12 +282,13 @@ task main() {
              spiel_ergebnis_array[i] = 0;
          }
          
-         // debugging beginn
+       /*   // debugging beginn
          if (debug_modus == true) {
             ClearScreen();
             TextOut(0, LCD_LINE3, "Lichtkalibierung:");
             print_array(licht_initial_array, LCD_LINE4);
-         } // debugging ende
+         } // debugging ende */
+
          
          while (ball_gefunden == false) { 
                for (int i=0; i<ArrayLen(licht_sensoren_array); i++) {
@@ -240,8 +296,10 @@ task main() {
                           }   
          }
        
-       spiel_starten = false;
-       ball_gefunden = false;
+       // debug
+       ClearScreen();
+       
+       neues_spiel_vorbereiten();
       
          /*  // debugging fuer unten
           if (debug_modus == true) {

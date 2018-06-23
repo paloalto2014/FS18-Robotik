@@ -1,24 +1,31 @@
-/*Mastercode um den Kassenzettel zu lesen und das Spiel zu starten.
-Written by: Steve Zwicky, Marcel Graf und Eliah Knecht */
+/*
+Bon-Prix-Machinerie (Controller)
+Studenten:     Steve Zwicky, Marcel Graf, Eliah Knecht
+Kurs:          Robotik, FS2018
+Bestandteile:  Kartenleser, Datenbank, Spiellogik, Kundenanzeige
+Ablauf:        1. Liesst Karte ein
+               2. Überprüft in Datenbank KundenID
+               3. Gibt Spiel frei, sendet an Spielautomat (Bluetooth)
+               4. Erhält Ergebnis
+               5. Handelt nach Spiellogik
+               6. Speichert in Datenbank
+*/
 
+//////////////////// WERTE ZUM EINTRAGEN /////////////////////////////
+int grenzwert = 45; // Unterscheidung von Schwarz zu Weiss für Lichtsensor
+
+/////////////////// INITIALISIERUNG DER DATENBANK /////////////////////
+int bon[]= {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}; //datenbank von allen Kunden 0= noch nicht gespiel, 1= verloren, 2=gewinn 1, 2 =gewinn 2; Anzahl Kunden: 22
+
+// Variablen
+short user; // Kassenzettel
+
+// Bluetooth Setup
 #define BT_CONN 1  // Master 1!!! Bluetooth von Master verwenden zum verbinden
 #define OUTBOX 1
 #define INBOX 2
 
-int bon[]= {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}; //datenbank von allen Kunden 0= noch nicht gespiel, 1= verloren, 2=gewinn 1, 2 =gewinn 2
-int grenzwert = 45;
-short user; // welcher kassenzettel
-
-
-int CheckBinary()//überprüft den 2. Sensor
-{
-  if (Sensor(S2)<grenzwert)//Sensor ist Schwarz
-  {
-    return 1;
-  }
-  return 0; //Weiss
-}
-
+// Bluetooth Check
 sub BTCheck(int conn) {
     if (!BluetoothStatus(conn)==NO_ERR) {
        ClearScreen();
@@ -30,8 +37,17 @@ sub BTCheck(int conn) {
       ClearScreen();
       TextOut(0, LCD_LINE2, "OK: Bluetooth");
       Wait(1000);
-    }
-    
+    }  
+}
+
+///////////////// FUNKTIONEN ////////////////////////////////////
+int CheckBinary()//überprüft den 2. Sensor
+{
+  if (Sensor(S2)<grenzwert)//Sensor ist Schwarz
+  {
+    return 1;
+  }
+  return 0; //Weiss
 }
 
 int Send_to_Oscar()
@@ -59,10 +75,7 @@ int Send_to_Oscar()
         beginn_zu_spielen = false;
         }
      
-     }
-     
-     
-     
+     }   
       return ergebnis_eingang;
 }
 
@@ -83,28 +96,28 @@ sub OpenGate()  //öffnet das Tor um den Ball rauszulassen
 
 sub Print_already_played()
 {
-  TextOut(0, LCD_LINE1, "Ihr Kassenzettel " ,true);
-  TextOut(0, LCD_LINE2, "wurde schon benutzt" );
+  TextOut(0,LCD_LINE4,"Sie haben leider",true);
+  TextOut(0,LCD_LINE5," schon gespielt");
   Wait(3000);
 }
 
 sub Print_already_won1()
 {
-  TextOut(0, LCD_LINE1, "Ihr Kassenzettel " ,true);
-  TextOut(0, LCD_LINE2, "wurde schon benutzt" );
-  TextOut(0, LCD_LINE3, "Sie haben 20% Rabatt" );
-  TextOut(0, LCD_LINE4, "auf Ihren nächsten Einkauf" );
+  TextOut(0,LCD_LINE3,"   Sie haben ",true);
+  TextOut(0,LCD_LINE4,"   10% Rabatt");
+  TextOut(0,LCD_LINE5,"   auf Ihren  ");
+  TextOut(0,LCD_LINE6,"nachsten Einkauf");
   Wait(3000);
   
 }
 
 sub Print_already_won2()
 {
-  TextOut(0, LCD_LINE1, "Ihr Kassenzettel " ,true);
-  TextOut(0, LCD_LINE2, "wurde schon benutzt" );
-  TextOut(0, LCD_LINE3, "Sie haben 30% Rabatt" );
-  TextOut(0, LCD_LINE4, "auf Ihren nächsten Einkauf" );
-  Wait(3000);
+   TextOut(0,LCD_LINE3,"   Sie haben ",true);
+   TextOut(0,LCD_LINE4,"   20% Rabatt");
+   TextOut(0,LCD_LINE5,"   auf Ihren  ");
+   TextOut(0,LCD_LINE6,"nachsten Einkauf");
+   Wait(3000);
 }
 
 sub Print_error()
@@ -159,25 +172,33 @@ short CheckCard()//startet den Einzug der Karte und gibt den Wert der Karte zurü
 
 sub Print_for_first_round(int endgame, int anotherone)
 {
-  TextOut(0, LCD_LINE1, "Für einen 20% Gutschein" ,true);
-  NumOut(0,  LCD_LINE2, endgame);
-  TextOut(0, LCD_LINE3, "Für einen 2. Versuch");
-  NumOut(0,  LCD_LINE4, anotherone);
-  Wait(2000);
+   TextOut(0,LCD_LINE1,"",true);
+   TextOut(0,LCD_LINE2," Fur 10% Rabatt: ");
+   TextOut(0,LCD_LINE3," Slot:  ");
+   NumOut(60,LCD_LINE3,endgame);
+   TextOut(0,LCD_LINE5," Fur 2. Versuch:");
+   TextOut(0,LCD_LINE6," Slot: ");
+   NumOut(60,LCD_LINE6,anotherone);
+   TextOut(0,LCD_LINE8," sonst Niete");
+  Wait(4000);
 }
 
 sub Print_for_second_round(int endgame, int checkpot)
 {
-  TextOut(0, LCD_LINE1, "Für einen 20% Gutschein" ,true);
-  NumOut(0,  LCD_LINE2, endgame);
-  TextOut(0, LCD_LINE3, "Für den Checkpot");
-  NumOut(0,  LCD_LINE4, checkpot);
+   TextOut(0,LCD_LINE1,"",true);
+   TextOut(0,LCD_LINE2," Fur 10% Rabatt: ");
+   TextOut(0,LCD_LINE3," Slot:  ");
+   NumOut(60,LCD_LINE3,endgame);
+   TextOut(0,LCD_LINE5," Fur 20% Rabatt: ");
+   TextOut(0,LCD_LINE6," Slot: ");
+   NumOut(60,LCD_LINE6,checkpot);
+   TextOut(0,LCD_LINE8," sonst Niete");
   Wait(2000);
 }
 
 
 
-
+/////// 2. Spielrunde (nicht immer gespielt) ///////////////////////
 int Play_again()//startet die 2. Runde des Spiel
 {
   int endgame = Random(3) + 1;    //Slot der getroffen werden muss um den einfachen Gewinn zu gewinnen
@@ -190,27 +211,32 @@ int Play_again()//startet die 2. Runde des Spiel
   short played = Send_to_Oscar();
    if (played==endgame)//Einfacher Gewinn
    {
-     TextOut(0, LCD_LINE1, "Sie haben 20% Rabatt" ,true);
-     TextOut(0, LCD_LINE2, "auf den nächsten");
-     TextOut(0, LCD_LINE3, "Einkauf gewonnen");
+      TextOut(0,LCD_LINE2,"  Gluckwunsch ",true);
+      TextOut(0,LCD_LINE3,"   Sie haben ");
+      TextOut(0,LCD_LINE4,"   10% Rabatt");
+      TextOut(0,LCD_LINE5,"   auf Ihren  ");
+      TextOut(0,LCD_LINE6,"nachsten Einkauf");
      Wait(2000);
      return 2;
    }
    if (played==checkpot)//Checkpot
    {
-     TextOut(0, LCD_LINE1, "Sie haben 30% Rabatt" ,true);
-     TextOut(0, LCD_LINE2, "auf den nächsten");
-     TextOut(0, LCD_LINE3, "Einkauf gewonnen");
+     TextOut(0,LCD_LINE2,"  Gluckwunsch ",true);
+     TextOut(0,LCD_LINE3,"   Sie haben ");
+     TextOut(0,LCD_LINE4,"   20% Rabatt");
+     TextOut(0,LCD_LINE5,"   auf Ihren  ");
+     TextOut(0,LCD_LINE6,"nachsten Einkauf");
      Wait(2000);
      return 3;
    }
-  TextOut(0, LCD_LINE1, "Sie haben leider" ,true);
-  TextOut(0, LCD_LINE2, "nichts Gewonnen");
+  TextOut(0,LCD_LINE3,"Sie haben leider", true);
+  TextOut(0,LCD_LINE4," nichts gewonnen");
   Wait(2000);
   return 1;//nicht gewonnen
 }
 
 
+/////// 1. Spielrunde ///////////////////////
 int Startgame() //startet das Spiel und gibt den Wert zurück was gerspielt wurde
 {
   int win = 0;
@@ -225,9 +251,11 @@ int Startgame() //startet das Spiel und gibt den Wert zurück was gerspielt wurde
   
   if (played==endgame)//Einfacher Gewinn
     {
-    TextOut(0, LCD_LINE1, "Sie haben 20% Rabatt" ,true);
-    TextOut(0, LCD_LINE2, "auf den nächsten");
-    TextOut(0, LCD_LINE3, "Einkauf gewonnen");
+      TextOut(0,LCD_LINE2,"  Gluckwunsch ",true);
+      TextOut(0,LCD_LINE3,"   Sie haben ");
+      TextOut(0,LCD_LINE4,"   10% Rabatt");
+      TextOut(0,LCD_LINE5,"   auf Ihren  ");
+      TextOut(0,LCD_LINE6,"nachsten Einkauf");
     Wait(2000);
     return 2;
     }
@@ -236,28 +264,40 @@ int Startgame() //startet das Spiel und gibt den Wert zurück was gerspielt wurde
      return Play_again(); 
      }
   else if (played==99) {
-     TextOut(0, LCD_LINE4, "Timeout :-(", true);
-     Wait(2000);
+  
+       while(true) {
+           TextOut(0,LCD_LINE3,"      Fehler",true);
+           TextOut(0,LCD_LINE4,"   aufgetreten");
+           Wait(2000);
+           TextOut(0,LCD_LINE3," wenden Sie sich",true);
+           TextOut(0,LCD_LINE4,"     an das ");
+           TextOut(0,LCD_LINE5," Servicepersonal");
+           Wait(3000);
+       }
+       
+     
      }
   else {   
-     TextOut(0, LCD_LINE1, "Sie haben leider" ,true);
-     TextOut(0, LCD_LINE2, "nichts Gewonnen");
+     TextOut(0,LCD_LINE3,"Sie haben leider", true);
+     TextOut(0,LCD_LINE4," nichts gewonnen");
      Wait(2000);
      return 1;//nicht gewonnen
      }
 }
 
 
-
+///////////////// TASK MAIN ////////////////////////////////////
 task main()
 {
    SetSensor(S1, SENSOR_LIGHT);
    SetSensor(S2, SENSOR_LIGHT);
    SetSensor(S3, SENSOR_TOUCH);
-   Wait(1000);
+
    while (true)
    {
-     TextOut(0, LCD_LINE1, "Bitte Kassenzettel einführen" ,true);
+     TextOut(0,LCD_LINE3,"      Bitte",true);
+     TextOut(0,LCD_LINE4,"  Kassenzettel");
+     TextOut(0,LCD_LINE5,"    einfuhren");
      if (Sensor(S1)>grenzwert)
      {
         user=CheckCard();
@@ -300,11 +340,11 @@ task main()
 
       TextOut(0, LCD_LINE1, "Durchgang beendet" ,true);
       NumOut(0, LCD_LINE2, bon[user]);
-      Wait(2000);
+      
      }
 
-   }
+   } // End While
 
-}
+} // End Task Main
 
 

@@ -1,0 +1,243 @@
+/*
+Bon-Prix-Machinerie (Spielautomat)
+Studenten:     Steve Zwicky, Marcel Graf, Eliah Knecht
+Kurs:          Robotik, FS2018
+Bestandteile:  Sensorenkalibration, Musik, Hindernisse
+Ablauf:        1. Bekommt per Bluetooth Signal, dass spielt zu starten
+               2. Kalibriert Lichtsensoren
+               3. Startet Musik und Motoren (Richtung zufällig)
+               4. Wartet darauf, dass Ball in Slot Sensorwert stark verändert
+               5. Sendet Slotnummer bzw. Fehler bei Timeout an Controller
+               6. Bereitet sich auf neue Spielrunde vor 
+*/
+
+
+//////////////// WERTE ZUM EINTRAGEN //////////////////////////
+const int licht_differenz = 5; //ab dieser Differenz soll ein Ball detektiert werden
+const int licht_sensoren_array[] = {S1, S2, S3, S4}; //hier die angeschlossenen Sensoren eintragen
+const int licht_sensoren_anzahl = 4; //hier Anzahl der Lichtsensoren eintragen
+bool main_prozess_beenden = false;
+
+////////////////INITIALISIERUNG DER ARRAYS + BOOLEAN/////////////////////
+bool spiel_starten = false; 
+bool ball_gefunden = false;
+int licht_initial_array[licht_sensoren_anzahl] = {};
+int spiel_ergebnis_array[licht_sensoren_anzahl] = {}; // Array fuer Anton 0,1,0,0 heisst, dass bei 4 Sensoren der 2. einen Ball registriert hat
+int ergebnis_slot = 99;
+bool beginn_zu_spielen = false;
+
+// Bluetooth Setup
+#define BT_CONN 0  // Slave 0!!! Bluetooth von Master aus herstellen
+#define OUTBOX 2
+#define INBOX 1
+
+// Bluetooth Check
+sub BTCheck(int conn) {
+    if (!BluetoothStatus(conn)==NO_ERR) {
+       ClearScreen();
+       TextOut(0, LCD_LINE3, "FEHLER: Bluetooth");
+       NumOut(0, LCD_LINE3, conn);
+       Wait(5000);
+       StopAllTasks();
+    } else {
+      ClearScreen();
+      TextOut(0, LCD_LINE2, "OK: Bluetooth");
+      NumOut(0, LCD_LINE3, conn);
+      Wait(500);
+    }
+}
+
+
+
+
+///////////////// FUNKTIONEN ////////////////////////////////////
+int licht_kalibrierung(int lichtsensor){
+    int licht_initial = Sensor(lichtsensor); // Speicherung des Lichtwertes ohne Ball
+    return licht_initial; //gibt den Wert zurueck
+}
+
+sub ball_ist_da(int index) {
+    
+    ball_gefunden = true;
+    spiel_ergebnis_array[index] = 1;
+    
+    // zum versenden
+    //int ergebnis_slot;
+    ergebnis_slot = index + 1;
+    SendRemoteNumber(BT_CONN, OUTBOX, ergebnis_slot);
+}
+
+
+int ball_kommt(int index, int lichtsensor) {
+
+    const int licht_initial = licht_initial_array[lichtsensor];
+    const int licht_aktuell = Sensor(lichtsensor);
+    
+    if ((licht_initial - licht_aktuell) > licht_differenz) {
+       ball_ist_da(index);   
+    } else if ((licht_initial - licht_aktuell) < -licht_differenz) {
+       ball_ist_da(index);  
+    }
+}
+
+sub neues_spiel_vorbereiten(){
+        spiel_starten = false;
+        ball_gefunden = false;
+        beginn_zu_spielen = false;
+        main_prozess_beenden = true;
+                  
+    }
+
+/////////////// TASK SOUND ///////////////////////////////////////////////////
+task sound() {
+
+     if(spiel_starten == true) {
+         PlayTone(523,400);
+         Wait(100);
+         Wait(300);
+         PlayTone(523,400);
+         Wait(100);
+         PlayTone(659,400);
+         Wait(100);
+         PlayTone(784,400);
+         Wait(100);
+         PlayTone(659,400);
+         Wait(100);
+         PlayTone(784,400);
+         Wait(500);
+         
+         //Balltüre öffnet sich kurz für Ballentnahme
+         OnFwd(OUT_B, 30);
+         Wait(400);
+         Off(OUT_B);
+         Wait(400);
+         OnRev(OUT_B,30);
+         Wait(400);
+         Off(OUT_B);
+         
+         // Hindernisse an (Richtungswahl ist Zufall)
+         int richtung = Random(2);
+         if (richtung == 0) {
+         OnRev(OUT_A, 30);
+         } 
+         if (richtung == 1) {
+         OnFwd(OUT_A, 30);
+         }
+         
+         //Zähler für Timeout
+         int count_while = 0;
+         int count_timeout = 200;
+            
+         // spielt solange den Musikloop bis Ball gefunden ist oder Timeout
+         while (spiel_starten == true){
+            
+            PlayTone(500,1000);
+            PlayTone(1000,1000);
+         
+               PlayTone(415,400);
+               Wait(100);
+               PlayTone(415,400);
+               Wait(100);
+               PlayTone(370,400);
+               Wait(100);
+               PlayTone(370,400);
+               Wait(100);
+               PlayTone(349,400);
+               Wait(100);
+               PlayTone(349,400);
+               Wait(100);
+               PlayTone(330,400);
+               Wait(100);
+               PlayTone(330,400);
+               Wait(100);
+                
+               count_while = count_while +1; 
+               
+               if (count_while == count_timeout -1) {
+                      SendRemoteNumber(BT_CONN, OUTBOX, 99);
+                      count_while = 0;  
+                      neues_spiel_vorbereiten(); 
+                   }      
+         }    
+     }
+     Off(OUT_A);
+     
+     PlayTone(262,400);
+     Wait(100);
+     PlayTone(294,400);
+     Wait(100);
+     PlayTone(330,400);
+     Wait(100);
+     PlayTone(349,400);
+     Wait(100);
+     PlayTone(392,400);
+     Wait(100);
+     PlayTone(440,400);
+     Wait(100);
+     PlayTone(494,400);
+     Wait(100);
+     PlayTone(523,400);
+     Wait(100);         
+     
+     neues_spiel_vorbereiten();     
+} // end of sound
+
+
+
+ ////////////////////task main()/////////////////////////////////
+task main() {
+     
+     BTCheck(BT_CONN);
+ 
+   while(true) {
+   
+      ClearScreen();
+      TextOut(0, LCD_LINE3, "Bitte scannen Sie den");
+      TextOut(0, LCD_LINE4, "Kassenbeleg, um das");
+      TextOut(0, LCD_LINE5, "Spiel zu beginnen.");
+      
+      main_prozess_beenden = false;
+      ReceiveRemoteBool(INBOX, true, beginn_zu_spielen);
+      
+      if(beginn_zu_spielen) {
+         
+         
+         ClearScreen();
+         TextOut(0, LCD_LINE2, "Das Spiel hat");
+         TextOut(0, LCD_LINE3, "begonnen!!!");
+         TextOut(0, LCD_LINE4, "Werfen Sie den");
+         TextOut(0, LCD_LINE5, "Ball oben ein...");
+         spiel_starten = true;
+      }
+  
+       if (spiel_starten) {
+       
+          start sound;
+          
+          // Initialisiert Sensoren und speichert Lichtkalibrierung, Spielstand auf null
+         for (int i=0; i<ArrayLen(licht_sensoren_array); i++) {
+             int aktueller_sensor = licht_sensoren_array[i]; 
+             SetSensor(aktueller_sensor, SENSOR_LIGHT);
+             licht_initial_array[i] = licht_kalibrierung(aktueller_sensor);
+             spiel_ergebnis_array[i] = 0;
+         }
+         
+         while (ball_gefunden == false) { 
+               for (int i=0; i<ArrayLen(licht_sensoren_array); i++) {
+                   ball_kommt(i, licht_sensoren_array[i]);
+                   
+                   if (main_prozess_beenden == true) {
+                      neues_spiel_vorbereiten();
+                   }
+               }   
+         }
+       
+       neues_spiel_vorbereiten();
+      
+       } // end of if
+       
+   } // end of while(true)
+   
+} // end of task main
+
+
