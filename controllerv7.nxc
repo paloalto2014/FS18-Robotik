@@ -1,0 +1,333 @@
+/*
+Bon-Prix-Machinerie (Controller)
+Studenten:     Steve Zwicky, Marcel Graf, Eliah Knecht
+Kurs:          Robotik, FS2018
+Bestandteile:  Kartenleser, Datenbank, Spiellogik, Kundenanzeige
+Ablauf:        1. Liesst Karte ein
+               2. Überprüft in Datenbank KundenID
+               3. Gibt Spiel frei, sendet an Spielautomat (Bluetooth)
+               4. Erhält Ergebnis
+               5. Handelt nach Spiellogik
+               6. Speichert in Datenbank
+*/
+
+
+//////////////////// WERTE ZUM EINTRAGEN /////////////////////////////
+int Licht_Grenzwert = 45; // Unterscheidung von Schwarz zu Weiss für Lichtsensor
+int Anzeigen_Dauer = 4000;
+//////////////////// VARIABLEN //////////////////////////////////
+int Kassenbon_ID;
+int Kassenbon_Array[]= {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}; //Datenbank aller möglichen KassenbonIDs (Beispiel 0-16)
+
+//////////////////// BLUETOOTH //////////////////////////////////
+#define BT_CONN 1  // Master 1!!! Bluetooth von Master verwenden zum verbinden
+#define OUTBOX 1
+#define INBOX 2
+
+sub BTCheck(int conn) {
+    if (!BluetoothStatus(conn)==NO_ERR) {
+       ClearScreen();
+       TextOut(0, LCD_LINE3, "FEHLER: Bluetooth");
+       NumOut(0, LCD_LINE4, conn);
+       Wait(5000);
+       StopAllTasks();
+    } else {
+      ClearScreen();
+      TextOut(0, LCD_LINE2, "OK: Bluetooth");
+      Wait(1000);
+    }  
+}
+
+//////////////////// TEXTE /////////////////////////////////////
+
+sub Anzeige_Einladung() {
+     TextOut(0,LCD_LINE3,"      Bitte",true);
+     TextOut(0,LCD_LINE4,"  Kassenzettel");
+     TextOut(0,LCD_LINE5,"    einfuhren");
+}
+sub Anzeige_ungultig() {
+    TextOut(0,LCD_LINE3,"      Ungultiger",true);
+    TextOut(0,LCD_LINE4,"      Kassenbon");
+    Wait(Anzeigen_Dauer);
+}
+sub Anzeige_Fehler(){
+     TextOut(0,LCD_LINE3,"        Ein",true);
+     TextOut(0,LCD_LINE4,"    Fehler ist");
+     TextOut(0,LCD_LINE5,"    aufgetreten");
+     Wait(Anzeigen_Dauer);
+}
+sub Anzeige_Niete(){
+    TextOut(0,LCD_LINE4,"Sie haben leider",true);
+    TextOut(0,LCD_LINE5," nichts gewonnen");
+    Wait(Anzeigen_Dauer);
+}
+sub Anzeige_PreisA(){
+    TextOut(0,LCD_LINE3,"   Sie haben ");
+    TextOut(0,LCD_LINE4,"   10% Rabatt");
+    TextOut(0,LCD_LINE5,"   auf Ihren  ");
+    TextOut(0,LCD_LINE6,"nachsten Einkauf");
+    Wait(Anzeigen_Dauer);
+}
+sub Anzeige_PreisB(){
+    TextOut(0,LCD_LINE3,"   Sie haben ");
+    TextOut(0,LCD_LINE4,"   20% Rabatt");
+    TextOut(0,LCD_LINE5,"   auf Ihren  ");
+    TextOut(0,LCD_LINE6,"nachsten Einkauf");
+    Wait(Anzeigen_Dauer);
+}
+sub Anzeige_Support(){
+     while(true) {
+           TextOut(0,LCD_LINE3,"      Fehler",true);
+           TextOut(0,LCD_LINE4,"   aufgetreten");
+           Wait(Anzeigen_Dauer);
+           TextOut(0,LCD_LINE3," wenden Sie sich",true);
+           TextOut(0,LCD_LINE4,"     an das ");
+           TextOut(0,LCD_LINE5," Servicepersonal");
+           Wait(Anzeigen_Dauer);
+     }
+}
+sub Anzeige_Spiel(int Runde, int GewinnA, int GewinnB, int GewinnChance){
+    if (Runde == 1){
+      TextOut(0,LCD_LINE1,"",true);
+      TextOut(0,LCD_LINE2," Fur 10% Rabatt: ");
+      TextOut(0,LCD_LINE3," Slot:  ");
+      NumOut(60,LCD_LINE3,GewinnA);
+      TextOut(0,LCD_LINE5," Fur 2. Chance:");
+      TextOut(0,LCD_LINE6," Slot: ");
+      NumOut(60,LCD_LINE6,GewinnChance);
+      TextOut(0,LCD_LINE8," sonst verloren!");   
+    } else if (Runde == 2){
+      TextOut(0,LCD_LINE1,"",true);
+      TextOut(0,LCD_LINE2," Fur 10% Rabatt: ");
+      TextOut(0,LCD_LINE3," Slot:  ");
+      NumOut(60,LCD_LINE3,GewinnA);
+      TextOut(0,LCD_LINE5," Fur 20% Rabatt: ");
+      TextOut(0,LCD_LINE6," Slot: ");
+      NumOut(60,LCD_LINE6,GewinnB);
+      TextOut(0,LCD_LINE8," sonst verloren!"); 
+    }
+}
+
+//////////////////// FUNKTIONEN ////////////////////////////////
+int Spielautomat_starten(){
+      bool beginn_zu_spielen = true;
+      SendRemoteBool(BT_CONN, OUTBOX, beginn_zu_spielen);
+      //NumOut(0, LCD_LINE5, beginn_zu_spielen);
+      int  ergebnis_eingang;
+      
+      while (beginn_zu_spielen) {
+            ReceiveRemoteNumber(INBOX, true, ergebnis_eingang);
+        
+         /* ergebnis_eingang =2;//solange kein remote stattfindet
+         ClearScreen();
+         TextOut(10, LCD_LINE3, "Slot:");
+         NumOut(13, LCD_LINE5, ergebnis_eingang);
+         */
+
+         if (ergebnis_eingang > 0) {
+           Wait(2000);
+           beginn_zu_spielen = false;
+         }
+      }   
+      return ergebnis_eingang;
+}
+
+// Achtung Spielrunde2 ist eine 1:1 Kopie von Spielrunde(), da mit dieser Programiersprache rekursive Aufrufe nicht moglich sind...
+int Spielrunde2(int Runde) {
+
+    // Gewinne werden auf Slots verteilt
+    int GewinnA = Random(3) + 1;
+    int GewinnB = Random(3) + 1;
+    while(GewinnA==GewinnB){
+          GewinnB = Random(3) + 1;
+    }
+    int GewinnChance = Random(3) + 1;
+    while(GewinnChance==GewinnA || GewinnChance==GewinnB){
+         GewinnChance = Random(3) +1;
+    }
+    Anzeige_Spiel(Runde, GewinnA, GewinnB, GewinnChance);
+    
+    int Spiel_Ergebnis = Spielautomat_starten();
+    
+    // 1. Runde  // wird in Spielrunde2 nicht aufgerufen, da das Argument Runde = 2 lautet
+    if (Runde == 1){
+       if (Spiel_Ergebnis == GewinnA){
+         TextOut(0, LCD_LINE2, "   Gluckwunsch!", true);
+         Anzeige_PreisA();
+         return 2;   
+       } else if (Spiel_Ergebnis == GewinnChance){
+         //return Spielrunde(2); // Auskommentiert, da rekursive Aufrufe nicht möglich sind
+       } else if (Spiel_Ergebnis == 99) {
+         Anzeige_Support();
+       } else {
+         Anzeige_Niete();
+         return 1;
+        }  
+    }
+    // 2. Runde    // wird aufgerufen
+    else if (Runde == 2){
+         if (Spiel_Ergebnis == GewinnA){
+            TextOut(0, LCD_LINE2, "   Gluckwunsch!", true);
+            Anzeige_PreisA();
+            return 2;  
+         } else if (Spiel_Ergebnis == GewinnB){
+            TextOut(0, LCD_LINE2, "   Gluckwunsch!", true);
+            Anzeige_PreisB();
+            return 3;
+         }  else if (Spiel_Ergebnis == 99) {
+            Anzeige_Support();
+         } else {
+           Anzeige_Niete();
+           return 1;
+         }  
+    }
+}
+// Spielrunde2 Ende
+
+
+int Spielrunde(int Runde) {
+
+    // Gewinne werden auf Slots verteilt
+    int GewinnA = Random(3) + 1;
+    int GewinnB = Random(3) + 1;
+    while(GewinnA==GewinnB){
+          GewinnB = Random(3) + 1;
+    }
+    int GewinnChance = Random(3) + 1;
+    while(GewinnChance==GewinnA || GewinnChance==GewinnB){
+         GewinnChance = Random(3) +1;
+    }
+    Anzeige_Spiel(Runde, GewinnA, GewinnB, GewinnChance);
+    
+    int Spiel_Ergebnis = Spielautomat_starten();
+    
+    // 1. Runde
+    if (Runde == 1){
+       if (Spiel_Ergebnis == GewinnA){
+         TextOut(0, LCD_LINE2, "   Gluckwunsch!", true);
+         Anzeige_PreisA();
+         return 2;   
+       } else if (Spiel_Ergebnis == GewinnChance){
+         return Spielrunde2(2); // eigentlich sollte hier Spielrunde(2) aufgerufen werden, aber leider sind rekursive Aufrufe in dieser Programmiersprache nicht möglich :(
+       } else if (Spiel_Ergebnis == 99) {
+         Anzeige_Support();
+       } else {
+         Anzeige_Niete();
+         return 1;
+        }  
+    }
+    // 2. Runde
+    else if (Runde == 2){
+         if (Spiel_Ergebnis == GewinnA){
+            TextOut(0, LCD_LINE2, "   Gluckwunsch!", true);
+            Anzeige_PreisA();
+            return 2;  
+         } else if (Spiel_Ergebnis == GewinnB){
+            TextOut(0, LCD_LINE2, "   Gluckwunsch!", true);
+            Anzeige_PreisB();
+            return 3;
+         }  else if (Spiel_Ergebnis == 99) {
+            Anzeige_Support();
+         } else {
+           Anzeige_Niete();
+           return 1;
+         }  
+    }
+}
+
+////////////////////// FUNKTIONEN KARTENLESER ///////////////////////////
+
+int CheckBinary(){//überprüft den 2. Sensor
+  if (Sensor(S2)<Licht_Grenzwert){//Sensor ist Schwarz
+    return 1;
+  }
+  return 0; //Weiss
+}
+
+int Kassenbon_einlesen() { //startet den Einzug der Karte und gibt den Wert der Karte zurück
+  
+  int binary[]= {0,0,0,0};
+  int count=0;
+  bool before_white = true;//startet mit Weiss
+  
+  OnFwd(OUT_A, 100);
+  while(Sensor(S3)==0){   //liest so lange den Wert der Karte bis S3 gedrückt wird
+     if (Sensor(S1)<Licht_Grenzwert){ //Sensor 1 liest Schwarz
+       if (before_white==true) {       
+             binary[count]= CheckBinary(); //liesst den Wert des 2. Sensors
+             count = count +1;
+             before_white= false;
+          }
+      }
+      if (Sensor(S1)>=Licht_Grenzwert){ //Sensor 1 liesst Weiss
+         if (before_white == false) {
+            before_white= true;
+          }
+      }
+  }
+  OnRev(OUT_A, 100); //gibt die Karte zurück
+  Wait(500);
+  Off(OUT_A);
+    
+  int binary_in_dezimal = binary[0]*1+binary[1]*2+binary[2]*4+binary[3]*8 ; //rechnet den Binärcode in eine Dezimalzahl um
+  if (count<4) {// wenn eine Karte mit falschem Format eingelesen wird, wird -1 zurückgegeben
+     binary_in_dezimal = -1;
+  }
+  
+  return binary_in_dezimal;
+}
+
+
+/////////////////// TASK MAIN //////////////////////////////////
+
+task main(){
+
+     // Sensoren deklarieren
+     SetSensor(S1, SENSOR_LIGHT);
+     SetSensor(S2, SENSOR_LIGHT);
+     SetSensor(S3, SENSOR_TOUCH);
+     
+     while(true){
+     
+          Anzeige_Einladung();
+          
+          // Weisses Ende der Karte am Kartenleser
+          if (Sensor(S1)>Licht_Grenzwert) {
+             
+             Kassenbon_ID = Kassenbon_einlesen();
+             
+             if (Kassenbon_ID == -1){ // ungultiger Kassenbon
+                Anzeige_ungultig();
+                Wait(2000);
+                continue;
+             }
+             if (Kassenbon_ID <-1 || Kassenbon_ID > ArrayLen(Kassenbon_Array)){  //Falsche Einlese
+                 Anzeige_Fehler();
+                 Wait(2000);
+                 continue;
+             }
+             
+             switch (Kassenbon_Array[Kassenbon_ID]) {
+                 case 0: // noch nicht gespielt --> Spielen
+                        Kassenbon_Array[Kassenbon_ID] = Spielrunde(1);
+                        break;
+                 case 1: // schon gespielt --> Niete
+                      ClearScreen();
+                      Anzeige_Niete();
+                      break;
+                 case 2: // schon gespielt --> Gewonnen Preis A
+                        ClearScreen();
+                        Anzeige_PreisA();
+                        break;
+                 case 3: // schon gespielt --> Gewonnen Preis B
+                        ClearScreen();
+                        Anzeige_PreisB();
+                        break; 
+
+                 default:
+                         Anzeige_Fehler();
+                         continue;
+             } // end of switch
+          }  // if Weiss zuerst
+     } // end of while true
+} // end of task main

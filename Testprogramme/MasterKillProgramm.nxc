@@ -1,0 +1,3 @@
+task main() {
+     RemoteStartProgram(1, "SlaveKillProgramm.rxe");
+}

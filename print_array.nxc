@@ -1,0 +1,26 @@
+sub print_array(int array[]) {
+    
+    //NumOut(10, LCD_LINE1, ArrayLen(array));
+     
+    //int array_laenge = ArrayLen(array);
+    
+    int position_x = 10;
+    for (int j=0; j<ArrayLen(array); j++) {
+        
+        NumOut(position_x, 10, array[j]);
+        position_x = position_x + 20;
+    } 
+}
+
+task main(){
+
+
+int test_array[] = {-1, -2, -3};
+
+print_array(test_array);
+
+
+Wait(3000);
+
+
+}

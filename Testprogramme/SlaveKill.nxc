@@ -1,0 +1,5 @@
+task main() {
+     TextOut(10, LCD_LINE3, "gestartet", true);
+     Wait(5000);
+     StopAllTasks();
+}

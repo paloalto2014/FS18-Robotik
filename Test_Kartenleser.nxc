@@ -1,0 +1,65 @@
+
+int Licht_Grenzwert = 45;
+int Kassenbon_ID;
+
+int CheckBinary(){//überprüft den 2. Sensor
+  if (Sensor(S2)<Licht_Grenzwert){//Sensor ist Schwarz
+    return 1;
+  }
+  return 0; //Weiss
+}
+
+int Kassenbon_einlesen() { //startet den Einzug der Karte und gibt den Wert der Karte zurück
+  
+  int binary[]= {0,0,0,0};
+  int count=0;
+  bool before_white = true;//startet mit Weiss
+  
+  OnFwd(OUT_A, 100);
+  while(Sensor(S3)==0){   //liest so lange den Wert der Karte bis S3 gedrückt wird
+     if (Sensor(S1)<Licht_Grenzwert){ //Sensor 1 liest Schwarz
+       if (before_white==true) {       
+             binary[count]= CheckBinary(); //liesst den Wert des 2. Sensors
+             count = count +1;
+             before_white= false;
+          }
+      }
+      if (Sensor(S1)>=Licht_Grenzwert){ //Sensor 1 liesst Weiss
+         if (before_white == false) {
+            before_white= true;
+          }
+      }
+  }
+  OnRev(OUT_A, 100); //gibt die Karte zurück
+  Wait(500);
+  Off(OUT_A);
+    
+  int binary_in_dezimal = binary[0]*1+binary[1]*2+binary[2]*4+binary[3]*8 ; //rechnet den Binärcode in eine Dezimalzahl um
+  
+  NumOut(20, LCD_LINE1, binary[0],true);
+  NumOut(20, LCD_LINE2, binary[1]);
+  NumOut(20, LCD_LINE3, binary[2]);
+  NumOut(20, LCD_LINE4, binary[3]);
+  if (count<4) {// wenn eine Karte mit falschem Format eingelesen wird, wird -1 zurückgegeben
+     binary_in_dezimal = -1;
+  }
+  
+  return binary_in_dezimal;
+}
+
+task main (){
+    // Sensoren deklarieren
+     SetSensor(S1, SENSOR_LIGHT);
+     SetSensor(S2, SENSOR_LIGHT);
+     SetSensor(S3, SENSOR_TOUCH);
+     
+       while (true){
+       
+             if (Sensor(S1)>45){
+                Kassenbon_ID = Kassenbon_einlesen();
+                
+                NumOut(10, LCD_LINE6, Kassenbon_ID);
+             }               
+       }
+}
+
